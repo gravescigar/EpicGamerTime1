@@ -4,68 +4,155 @@ using UnityEngine;
 
 public class SlimeController : MonoBehaviour
 {
+    #region Objects
     [SerializeField]
-    Rigidbody2D rb;
+    Rigidbody2D slimeRb;
+    Transform player;
+    #endregion
 
-    float _health;
-    public bool _jumping;
-    public bool _grounded;
-    float _timeBetweenJumps = 1000f;
-    public float _jumpcooldown;
-    float m_jumpForce = 6f;
-    int _random_number;
-    int _timesjumped;
+    #region Properties
+    float awakeDistance;
+    float aggroDistance;
+    bool jumping;
+    bool grounded;
+    int times_jumped;
+    public float jump_cooldown;
+    float jumpcooldowntime;
+    float distanceToPlayer;
+    float jumpForce;
+    bool woke;
+    bool aggro;
+    float maxHealth;
+    float currentHealth;
+    public float percentageHealth;
+    #endregion
 
+    #region Start/Update/FixedUpdate
     // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
-        _timesjumped = 0;
-        _jumpcooldown = 0;
+        player = GameObject.FindGameObjectWithTag("Player").transform;
+        aggroDistance = 8f;
+        awakeDistance = 15f;
+        times_jumped = 0;
+        jumpcooldowntime = 150f;
+        distanceToPlayer = Vector2.Distance(transform.position, player.position);
+        jumpForce = 3f;
+        maxHealth = 100;
+        currentHealth = maxHealth;
     }
 
     // Update is called once per frame
     void Update()
     {
-        if(_jumpcooldown == 0)
-        {
-            Jump();
-        }
-        if (_jumpcooldown > 0)
-            _jumpcooldown -= 1;
+        percentageHealth = currentHealth / maxHealth;
     }
 
-    void Jump()
+    void FixedUpdate()
     {
-        if (_timesjumped == 0 && _grounded)
+        distanceToPlayer = Vector2.Distance(transform.position, player.position);
+        if (distanceToPlayer <= awakeDistance)
         {
-            _random_number = Random.Range(0, 2);
-            if (_random_number < 1)
-                rb.velocity = new Vector2(-3, m_jumpForce);
+            woke = true;
+        }
+        if (woke)
+        {
+            if (distanceToPlayer <= aggroDistance)
+            {
+                aggro = true;
+                // When Player is at the left side of the Slime 
+                if (transform.position.x > player.position.x)
+                {
+                    if (distanceToPlayer < jumpForce)
+                        Jump(-distanceToPlayer, jumpForce * 2f);
+                    else
+                        Jump(-jumpForce, jumpForce * 2f);
+                }
+                // When Player is at the right side of the Slime
+                else if (transform.position.x < player.position.x)
+                {
+                    if (distanceToPlayer < jumpForce)
+                        Jump(distanceToPlayer, jumpForce * 2f);
+                    else
+                        Jump(jumpForce, jumpForce * 2f);
+                }
+                //When their x position is equal
+                else
+                {
+                    Jump(slimeRb.velocity.x, jumpForce * 2f);
+                }
+            }
             else
-                rb.velocity = new Vector2(3, m_jumpForce);
-            _jumpcooldown = _timeBetweenJumps;
+            {
+                aggro = false;
+                Act();
+            }
+        }
+        if (jump_cooldown > 0)
+        {
+            jump_cooldown--;
         }
     }
+    #endregion
+
+    #region Methods
+
+    #region Act
+    void Act()
+    {
+        if (!aggro)
+        {
+            if (Random.Range(0,2) == 0)
+            {
+                Jump(-jumpForce + 1, jumpForce * 2);
+            }
+            else
+            {
+                Jump(jumpForce - 1, jumpForce * 2);
+            }
+        }
+    }
+    #endregion
+
+    #region Jump
+    void Jump(float jumpForceSideways, float jumpForceUpwards)
+    {
+        if (times_jumped == 0 && jump_cooldown == 0 && grounded)
+        {
+            slimeRb.velocity = new Vector2(jumpForceSideways, jumpForceUpwards);
+            times_jumped++;
+            jump_cooldown = jumpcooldowntime;
+            jumping = true;
+        }
+    }
+    #endregion
 
     #region OnCollisionEnter/Exit
     void OnCollisionEnter2D(Collision2D collision)
     {
-        Debug.Log(collision.collider.sharedMaterial.name);
-        if (collision.collider.tag == "Ground" && collision.collider.sharedMaterial.name == "Ground")
+        if (collision.transform.tag == "Ground" || collision.transform.tag == "Player")
         {
-            _jumping = false;
-            _grounded = true;
-            _timesjumped = 0;
+            grounded = true;
+            jumping = false;
+            times_jumped = 0;
         }
     }
 
     void OnCollisionExit2D(Collision2D collision)
     {
-
-        if (collision.collider.tag == "Ground" && collision.collider.sharedMaterial.name == "Ground")
+        if (collision.transform.tag == "Ground" || collision.transform.tag == "Player")
         {
-            _grounded = false;
+            grounded = false;
         }
     }
+    #endregion
+
+    #region TakeDamage
+    public void TakeDamage(float damage)
+    {
+        currentHealth -= damage;
+    }
+    #endregion
+
     #endregion
 }

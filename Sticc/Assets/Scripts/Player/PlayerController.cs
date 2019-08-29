@@ -20,7 +20,9 @@ public class PlayerController : MonoBehaviour
     public bool m_FacingRight;
     bool m_Ducking;
     int m_timesJumped;
-    //hp bar
+    float maxHealth;
+    float currentHealth;
+    public float percentageHealth;
     #endregion
 
     #region Events
@@ -37,6 +39,8 @@ public class PlayerController : MonoBehaviour
     {
         m_FacingRight = true;
         m_timesJumped = 0;
+        maxHealth = 100;
+        currentHealth = maxHealth;
     }
 
     // Update is called once per frame
@@ -53,6 +57,7 @@ public class PlayerController : MonoBehaviour
             PlayerJump();
             m_timesJumped++;
         }
+        percentageHealth = currentHealth / maxHealth;
     }
 
     void FixedUpdate()
@@ -90,7 +95,6 @@ public class PlayerController : MonoBehaviour
     #region OnCollisionEnter/Exit
     void OnCollisionEnter2D(Collision2D collision)
     {
-        Debug.Log(collision.collider.sharedMaterial.name);
         if (collision.collider.tag == "Ground" && collision.collider.sharedMaterial.name == "Ground")
         {
             m_Jumping = false;
@@ -181,6 +185,13 @@ public class PlayerController : MonoBehaviour
         transform.localScale = theScale;
         // Switch the way the player is labelled as facing.
         m_FacingRight = !m_FacingRight;
+    }
+    #endregion
+
+    #region TakeDamage
+    public void TakeDamage(float damage)
+    {
+        currentHealth -= damage;
     }
     #endregion
 
